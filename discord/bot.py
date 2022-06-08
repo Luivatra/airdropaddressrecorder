@@ -1,6 +1,7 @@
 from discord.ext import commands
 from discord.user import User
 from discord.guild import Guild, Member, Role
+from discord import Intents
 from dislash import slash_commands
 from dislash.interactions import *
 import os
@@ -11,7 +12,9 @@ import logging
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
 
-client = commands.Bot(command_prefix="!")
+intents = Intents.default()
+intents.members = True
+client = commands.Bot(command_prefix="!",intents=intents)
 slash = slash_commands.SlashClient(client)
 
 @slash.command(
