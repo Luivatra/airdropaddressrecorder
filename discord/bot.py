@@ -187,28 +187,34 @@ async def insertMember(guild_id, user_id, joined_at, display_name):
 
 @client.event
 async def on_ready():
-    logging.info("on_ready")
-    for guild in client.guilds:
-        if guild.id == int(os.environ.get("GUILD_ID")):
-            logging.info("Found the right guild")
-            for member in guild.members:
-                logging.info(f"Found member {member.display_name}")
-                if not member.bot:
-                    logging.info("not a bot")
-                    if member.top_role >= guild.get_role(int(os.environ.get("ROLE_ID"))):
-                        logging.info("Has the correct role")
-                        if await getMemberNumber(guild.id, member.id) == -1:
-                            logging.info("not in db yet")
-                            await insertMember(guild.id,member.id,member.joined_at,member.display_name.replace(","," "))
+    try:
+        logging.info("on_ready")
+        for guild in client.guilds:
+            if guild.id == int(os.environ.get("GUILD_ID")):
+                logging.info("Found the right guild")
+                for member in guild.members:
+                    logging.info(f"Found member {member.display_name}")
+                    if not member.bot:
+                        logging.info("not a bot")
+                        if member.top_role >= guild.get_role(int(os.environ.get("ROLE_ID"))):
+                            logging.info("Has the correct role")
+                            if await getMemberNumber(guild.id, member.id) == -1:
+                                logging.info("not in db yet")
+                                await insertMember(guild.id,member.id,member.joined_at,member.display_name.replace(","," "))
+    except Exception as e:
+        logging.error(e)
 
 @client.event
 async def on_member_update(old: Member, member: Member):
-    logging.info(f"on_member_update: {member.display_name}")
-    if old.top_role < member.guild.get_role(int(os.environ.get("ROLE_ID"))):
-        logging.info("Got the right role")
-        if await getMemberNumber(member.guild.id, member.id) == -1:
-            logging.info("not in db yet")
-            await insertMember(member.guild.id, member.id, member.joined_at, member.display_name)
+    try:
+        logging.info(f"on_member_update: {member.display_name}")
+        if old.top_role < member.guild.get_role(int(os.environ.get("ROLE_ID"))):
+            logging.info("Got the right role")
+            if await getMemberNumber(member.guild.id, member.id) == -1:
+                logging.info("not in db yet")
+                await insertMember(member.guild.id, member.id, member.joined_at, member.display_name)
+    except Exception as e:
+        logging.error(e)
                     
 
 
