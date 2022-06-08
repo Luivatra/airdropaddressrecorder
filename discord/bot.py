@@ -84,54 +84,115 @@ async def registerErgo(interaction: SlashInteraction, address: str):
     else:
         await interaction.reply("ERROR! Please re-enter a valid Ergo wallet address.")
 
-@slash.command(
-    name="register-cardano",
-    description="Register your address to get LISO badge.",
-    options=[Option("address","Your Cardano wallet address",OptionType.STRING,required=True)]
-    )
-async def registerCardano(interaction: SlashInteraction, address: str):
-    # ------------- get user & guild ------------------
-    guild: Guild = interaction.guild
-    member: Member = interaction.author
-    user: User = interaction.author
+# @slash.command(
+#     name="register-cardano",
+#     description="Register your address to get LISO badge.",
+#     options=[Option("address","Your Cardano wallet address",OptionType.STRING,required=True)]
+#     )
+# async def registerCardano(interaction: SlashInteraction, address: str):
+#     # ------------- get user & guild ------------------
+#     guild: Guild = interaction.guild
+#     member: Member = interaction.author
+#     user: User = interaction.author
 
-    # -------------- if wallet is valid save it in the DB ------------------
-    # Important !!!!!!!
-    # Add blockfrost_project_id
-    if verify_address(address, os.environ.get('blockfrost_project_id')):
-        with psycopg2.connect(
-            host=os.environ.get("POSTGRES_HOST"),
-            port=os.environ.get("POSTGRES_PORT"),
-            database=os.environ.get('POSTGRES_DB'),
-            user=os.environ.get('POSTGRES_USER'),
-            password=os.environ.get('POSTGRES_PASSWORD')
-            ) as conn:
-            # Important !!!!
-            # Create discord_cardano_wallets table that uses schema of discord_wallets tabel used for ERGO
-            with conn.cursor() as cur:
-                cur.execute("""INSERT INTO discord_cardano_wallets 
-                (guild_id,user_id,user_name,guild_join_date,wallet_address) 
-                VALUES 
-                (%s,%s,%s,%s,%s)
-                ON CONFLICT ON CONSTRAINT "discord_cardano_wallets_GUILD_ID_USER_ID"
-                DO UPDATE SET
-                (user_name, wallet_address, wallet_update_ts)
-                = (EXCLUDED.user_name, EXCLUDED.wallet_address, CURRENT_TIMESTAMP)""",(
-                    guild.id,
-                    user.id,
-                    member.display_name,
-                    member.joined_at,
-                    address
+#     # -------------- if wallet is valid save it in the DB ------------------
+#     # Important !!!!!!!
+#     # Add blockfrost_project_id
+#     if verify_address(address, os.environ.get('blockfrost_project_id')):
+#         with psycopg2.connect(
+#             host=os.environ.get("POSTGRES_HOST"),
+#             port=os.environ.get("POSTGRES_PORT"),
+#             database=os.environ.get('POSTGRES_DB'),
+#             user=os.environ.get('POSTGRES_USER'),
+#             password=os.environ.get('POSTGRES_PASSWORD')
+#             ) as conn:
+#             # Important !!!!
+#             # Create discord_cardano_wallets table that uses schema of discord_wallets tabel used for ERGO
+#             with conn.cursor() as cur:
+#                 cur.execute("""INSERT INTO discord_cardano_wallets 
+#                 (guild_id,user_id,user_name,guild_join_date,wallet_address) 
+#                 VALUES 
+#                 (%s,%s,%s,%s,%s)
+#                 ON CONFLICT ON CONSTRAINT "discord_cardano_wallets_GUILD_ID_USER_ID"
+#                 DO UPDATE SET
+#                 (user_name, wallet_address, wallet_update_ts)
+#                 = (EXCLUDED.user_name, EXCLUDED.wallet_address, CURRENT_TIMESTAMP)""",(
+#                     guild.id,
+#                     user.id,
+#                     member.display_name,
+#                     member.joined_at,
+#                     address
+#                     ))
+#                 conn.commit()
+#                 extra = f"🦾 We'll keep this on hand for any future airdrops and events!😇"
+#                 if guild.id == 876475955701501962:
+#                     for r in guild.roles:
+#                         role: Role = r
+#                         if role.name == "LISO":
+#                             await member.add_roles(role)
+#                 await interaction.reply(f"CONGRATULATIONS! 🎊 You successfully registered your Cardano Wallet address. {extra}")
+#     else:
+#         await interaction.reply("ERROR! Please re-enter a valid Cardano wallet address that is delegated to one of the NETA pools.")
+
+async def getMemberNumber(guild_id, user_id):
+    with psycopg2.connect(
+        host=os.environ.get("POSTGRES_HOST"),
+        port=os.environ.get("POSTGRES_PORT"),
+        database=os.environ.get('POSTGRES_DB'),
+        user=os.environ.get('POSTGRES_USER'),
+        password=os.environ.get('POSTGRES_PASSWORD')
+        ) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""SELECT guild_id,user_id,display_name,join_date, ROW_NUMBER() OVER(ORDER BY join_date) 
+                FROM discord_users 
+                WHERE guild_id = %s AND user_id = %s 
+                (%s,%s,%s,%s,%s)""",(
+                    guild_id,
+                    user_id
                     ))
-                conn.commit()
-                extra = f"🦾 We'll keep this on hand for any future airdrops and events!😇"
-                if guild.id == 876475955701501962:
-                    for r in guild.roles:
-                        role: Role = r
-                        if role.name == "LISO":
-                            await member.add_roles(role)
-                await interaction.reply(f"CONGRATULATIONS! 🎊 You successfully registered your Cardano Wallet address. {extra}")
-    else:
-        await interaction.reply("ERROR! Please re-enter a valid Cardano wallet address that is delegated to one of the NETA pools.")
+            res = cur.fetchone()
+            if res is not None:
+                return res[4]
+            else:
+                return -1
+
+async def insertMember(guild_id, user_id, joined_at, display_name):
+    with psycopg2.connect(
+        host=os.environ.get("POSTGRES_HOST"),
+        port=os.environ.get("POSTGRES_PORT"),
+        database=os.environ.get('POSTGRES_DB'),
+        user=os.environ.get('POSTGRES_USER'),
+        password=os.environ.get('POSTGRES_PASSWORD')
+        ) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""INSERT INTO discord_users
+                (guild_id,user_id,display_name,join_date)
+                VALUES
+                (%s,%s,%s,%s)""",(
+                    guild_id,
+                    user_id,
+                    joined_at,
+                    display_name
+                    ))
+            conn.commit()
+            
+
+@client.event
+async def on_ready():
+    for guild in client.guilds:
+        if guild.id == os.environ.get("GUILD_ID"):
+            for member in guild.members:
+                if not member.bot:
+                    if member.top_role >= guild.get_role(os.environ.get("ROLE_ID")):
+                        if await getMemberNumber(guild.id, member.id) == -1:
+                            await insertMember(guild.id,member.id,member.joined_at,member.display_name.replace(","," "))
+
+@client.event
+async def on_member_update(old: Member, member: Member):
+    if old.top_role < member.guild.get_role(os.environ.get("ROLE_ID")):
+        if await getMemberNumber(member.guild.id, member.id) == -1:
+            await insertMember(member.guild.id, member.id, member.joined_at, member.display_name)
+                    
+
 
 client.run(os.environ.get("DISCORD_KEY"))
