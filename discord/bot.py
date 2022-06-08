@@ -180,8 +180,8 @@ async def insertMember(guild_id, user_id, joined_at, display_name):
                     (%s,%s,%s,%s)""",(
                         guild_id,
                         user_id,
-                        joined_at,
-                        display_name
+                        display_name,
+                        joined_at
                         ))
                 conn.commit()
     except Exception as e:
