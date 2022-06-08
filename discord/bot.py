@@ -183,13 +183,13 @@ async def on_ready():
         if guild.id == os.environ.get("GUILD_ID"):
             for member in guild.members:
                 if not member.bot:
-                    if member.top_role >= guild.get_role(os.environ.get("ROLE_ID")):
+                    if member.top_role >= guild.get_role(int(os.environ.get("ROLE_ID"))):
                         if await getMemberNumber(guild.id, member.id) == -1:
                             await insertMember(guild.id,member.id,member.joined_at,member.display_name.replace(","," "))
 
 @client.event
 async def on_member_update(old: Member, member: Member):
-    if old.top_role < member.guild.get_role(os.environ.get("ROLE_ID")):
+    if old.top_role < member.guild.get_role(int(os.environ.get("ROLE_ID"))):
         if await getMemberNumber(member.guild.id, member.id) == -1:
             await insertMember(member.guild.id, member.id, member.joined_at, member.display_name)
                     
