@@ -189,7 +189,7 @@ async def insertMember(guild_id, user_id, joined_at, display_name):
 async def on_ready():
     logging.info("on_ready")
     for guild in client.guilds:
-        if guild.id == os.environ.get("GUILD_ID"):
+        if guild.id == int(os.environ.get("GUILD_ID")):
             logging.info("Found the right guild")
             for member in guild.members:
                 logging.info(f"Found member {member.display_name}")
