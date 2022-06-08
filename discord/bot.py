@@ -9,6 +9,8 @@ import requests
 from cardano_verify import verify_address
 import logging
 
+logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+
 client = commands.Bot(command_prefix="!")
 slash = slash_commands.SlashClient(client)
 
