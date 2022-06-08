@@ -149,7 +149,7 @@ async def getMemberNumber(guild_id, user_id):
             with conn.cursor() as cur:
                 cur.execute("""SELECT guild_id,user_id,display_name,join_date, ROW_NUMBER() OVER(ORDER BY join_date) 
                     FROM discord_users 
-                    WHERE guild_id = %s AND user_id = %s""",(
+                    WHERE guild_id = '%s' AND user_id = '%s'""",(
                         guild_id,
                         user_id
                         ))
