@@ -129,9 +129,9 @@ async def getMemberNumber(guild_id, user_id):
             password=os.environ.get('POSTGRES_PASSWORD')
             ) as conn:
             with conn.cursor() as cur:
-                cur.execute("""SELECT guild_id,user_id,display_name,join_date, ROW_NUMBER() OVER(ORDER BY join_date) 
+                cur.execute("""SELECT guild_id, user_id, display_name, join_date, rn from (SELECT guild_id,user_id,display_name,join_date, ROW_NUMBER() OVER(ORDER BY join_date) AS rn
                     FROM discord_users 
-                    WHERE guild_id = '%s' AND user_id = '%s'""",(
+                    WHERE guild_id = '%s') `A` WHERE user_id = '%s'""",(
                         guild_id,
                         user_id
                         ))
@@ -170,16 +170,13 @@ async def insertMember(guild_id, user_id, joined_at, display_name):
 @client.event
 async def on_ready():
     try:
-        logging.info("on_ready")
+        logging.info("on_ready, checking current members")
         for guild in client.guilds:
             if guild.id == int(os.environ.get("GUILD_ID")):
                 logging.info("Found the right guild")
                 for member in guild.members:
-                    logging.info(f"Found member {member.display_name}")
                     if not member.bot:
-                        logging.info("not a bot")
                         if member.top_role >= guild.get_role(int(os.environ.get("ROLE_ID"))):
-                            logging.info("Has the correct role")
                             if await getMemberNumber(guild.id, member.id) == -1:
                                 logging.info("not in db yet")
                                 await insertMember(guild.id,member.id,member.joined_at,member.display_name.replace(","," "))
