@@ -64,7 +64,7 @@ async def registerErgo(interaction: SlashInteraction, address: str):
                         ))
                     conn.commit()
  
-                    extra = f". Your were user #{userRank} to join this server!"
+                    extra = f". You were user #{userRank} to join this server!"
                     await interaction.reply(f"CONGRATULATIONS! 🎊 You successfully registered your Ergo Wallet address. {extra}")
         else:
             await interaction.reply("ERROR! Please re-enter a valid Ergo wallet address.")
