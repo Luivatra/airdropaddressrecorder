@@ -200,7 +200,7 @@ async def on_ready():
                     logging.info("Found the right guild")
                     i = 0
                     for member in guild.members:
-                        if i%100:
+                        if i%100 == 0:
                             logging.info(i)
                         if not member.bot:
                             i+=1
