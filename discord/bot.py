@@ -143,27 +143,20 @@ async def getMemberNumber(guild_id, user_id):
     except Exception as e:
         logging.error(e)
 
-async def getMember(guild_id, user_id):
-    try:
-        with psycopg2.connect(
-            host=os.environ.get("POSTGRES_HOST"),
-            port=os.environ.get("POSTGRES_PORT"),
-            database=os.environ.get('POSTGRES_DB'),
-            user=os.environ.get('POSTGRES_USER'),
-            password=os.environ.get('POSTGRES_PASSWORD')
-            ) as conn:
-            with conn.cursor() as cur:
-                cur.execute("""SELECT guild_id, user_id, display_name, join_date
-                    FROM discord_users 
-                    WHERE guild_id = '%s' and user_id = '%s'""",(
-                        guild_id,
-                        user_id
-                        ))
-                res = cur.fetchone()
-                if res is not None:
-                    return res
-                else:
-                    return None
+async def getMember(guild_id, user_id, conn: psycopg2.connection):
+    try:      
+        with conn.cursor() as cur:
+            cur.execute("""SELECT guild_id, user_id, display_name, join_date
+                FROM discord_users 
+                WHERE guild_id = '%s' and user_id = '%s'""",(
+                    guild_id,
+                    user_id
+                    ))
+            res = cur.fetchone()
+            if res is not None:
+                return res
+            else:
+                return None
     except Exception as e:
         logging.error(e)
 
@@ -195,15 +188,26 @@ async def insertMember(guild_id, user_id, joined_at, display_name):
 async def on_ready():
     try:
         logging.info("on_ready, checking current members")
-        for guild in client.guilds:
-            if guild.id == int(os.environ.get("GUILD_ID")):
-                logging.info("Found the right guild")
-                for member in guild.members:
-                    if not member.bot:
-                        if member.top_role >= guild.get_role(int(os.environ.get("ROLE_ID"))):
-                            if await getMember(guild.id, member.id) is None:
-                                logging.info("not in db yet")
-                                await insertMember(guild.id,member.id,member.joined_at,member.display_name.replace(","," "))
+        with psycopg2.connect(
+            host=os.environ.get("POSTGRES_HOST"),
+            port=os.environ.get("POSTGRES_PORT"),
+            database=os.environ.get('POSTGRES_DB'),
+            user=os.environ.get('POSTGRES_USER'),
+            password=os.environ.get('POSTGRES_PASSWORD')
+            ) as conn:
+            for guild in client.guilds:
+                if guild.id == int(os.environ.get("GUILD_ID")):
+                    logging.info("Found the right guild")
+                    i = 0
+                    for member in guild.members:
+                        if i%100:
+                            logging.info(i)
+                        if not member.bot:
+                            i+=1
+                            if member.top_role >= guild.get_role(int(os.environ.get("ROLE_ID"))):
+                                if await getMember(guild.id, member.id, conn) is None:
+                                    logging.info("not in db yet")
+                                    await insertMember(guild.id,member.id,member.joined_at,member.display_name.replace(","," "))
     except Exception as e:
         logging.error(e)
 
