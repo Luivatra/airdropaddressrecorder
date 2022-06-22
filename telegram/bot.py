@@ -42,7 +42,7 @@ def register(update: Update, context: CallbackContext):
                 """,(user.id,))
                 ogcount = cur.fetchone()[0]
                 if ogcount > 0 and ogcount <= 3000:
-                    extra = f"You were Telegram member number {ogcount}, congratulations and thank you for being one of the first 3,000 Telegram members to join our community. 😇 You are now successfully registered and will receive your airdrop soon!🥳🎉"
+                    extra = f"You were Telegram member number {ogcount}, congratulations and thank you for being one of the first 3,000 Telegram members to join our community. 😇 You are now successfully registered and will receive your airdrop within the coming weeks!🥳🎉"
                 context.bot.send_message(chat_id=update.effective_chat.id, text=f"CONGRATULATIONS! 🎊 You successfully registered your Ergo Wallet address. {extra}")
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="ERROR! Please re-enter a valid Ergo wallet address.")
