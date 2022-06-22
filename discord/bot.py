@@ -143,7 +143,7 @@ async def getMemberNumber(guild_id, user_id):
     except Exception as e:
         logging.error(e)
 
-async def getMember(guild_id, user_id, conn: psycopg2.connection):
+async def getMember(guild_id, user_id, conn):
     try:      
         with conn.cursor() as cur:
             cur.execute("""SELECT guild_id, user_id, display_name, join_date
