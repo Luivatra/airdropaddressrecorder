@@ -17,57 +17,57 @@ intents.members = True
 client = commands.Bot(command_prefix="!",intents=intents)
 slash = slash_commands.SlashClient(client)
 
-@slash.command(
-    name="register-ergo",
-    description="Register your address for the airdrop.",
-    options=[Option("address","Your ergo wallet address",OptionType.STRING,required=True)]
-    )
-async def registerErgo(interaction: SlashInteraction, address: str):
-    # ------------- get user & guild ------------------
-    guild: Guild = interaction.guild
-    member: Member = interaction.author
-    user: User = interaction.author
+# @slash.command(
+#     name="register-ergo",
+#     description="Register your address for the airdrop.",
+#     options=[Option("address","Your ergo wallet address",OptionType.STRING,required=True)]
+#     )
+# async def registerErgo(interaction: SlashInteraction, address: str):
+#     # ------------- get user & guild ------------------
+#     guild: Guild = interaction.guild
+#     member: Member = interaction.author
+#     user: User = interaction.author
 
-    userRank = await getMemberNumber(member.guild.id, member.id)
+#     userRank = await getMemberNumber(member.guild.id, member.id)
 
-    if userRank == -1:
-        await interaction.reply("Make sure you have the dropper role1!")
-        return
-    else:
-        # ------------- get wallet info based on address ---------------
-        r = requests.get(f'{os.environ.get("ERGO_NODE")}/utils/address/{address}')
-        res = r.json()
+#     if userRank == -1:
+#         await interaction.reply("Make sure you have the dropper role1!")
+#         return
+#     else:
+#         # ------------- get wallet info based on address ---------------
+#         r = requests.get(f'{os.environ.get("ERGO_NODE")}/utils/address/{address}')
+#         res = r.json()
 
-        # -------------- if wallet is valid save it in the DB ------------------
-        if res['isValid']:
-            with psycopg2.connect(
-                host=os.environ.get("POSTGRES_HOST"),
-                port=os.environ.get("POSTGRES_PORT"),
-                database=os.environ.get('POSTGRES_DB'),
-                user=os.environ.get('POSTGRES_USER'),
-                password=os.environ.get('POSTGRES_PASSWORD')
-                ) as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""INSERT INTO discord_wallets 
-                    (guild_id,user_id,user_name,guild_join_date,wallet_address) 
-                    VALUES 
-                    (%s,%s,%s,%s,%s)
-                    ON CONFLICT ON CONSTRAINT "discord_wallets_GUILD_ID_USER_ID"
-                    DO UPDATE SET
-                    (user_name, wallet_address, wallet_update_ts)
-                    = (EXCLUDED.user_name, EXCLUDED.wallet_address, CURRENT_TIMESTAMP)""",(
-                        guild.id,
-                        user.id,
-                        member.display_name,
-                        member.joined_at,
-                        address
-                        ))
-                    conn.commit()
+#         # -------------- if wallet is valid save it in the DB ------------------
+#         if res['isValid']:
+#             with psycopg2.connect(
+#                 host=os.environ.get("POSTGRES_HOST"),
+#                 port=os.environ.get("POSTGRES_PORT"),
+#                 database=os.environ.get('POSTGRES_DB'),
+#                 user=os.environ.get('POSTGRES_USER'),
+#                 password=os.environ.get('POSTGRES_PASSWORD')
+#                 ) as conn:
+#                 with conn.cursor() as cur:
+#                     cur.execute("""INSERT INTO discord_wallets 
+#                     (guild_id,user_id,user_name,guild_join_date,wallet_address) 
+#                     VALUES 
+#                     (%s,%s,%s,%s,%s)
+#                     ON CONFLICT ON CONSTRAINT "discord_wallets_GUILD_ID_USER_ID"
+#                     DO UPDATE SET
+#                     (user_name, wallet_address, wallet_update_ts)
+#                     = (EXCLUDED.user_name, EXCLUDED.wallet_address, CURRENT_TIMESTAMP)""",(
+#                         guild.id,
+#                         user.id,
+#                         member.display_name,
+#                         member.joined_at,
+#                         address
+#                         ))
+#                     conn.commit()
  
-                    extra = f"You were user #{userRank} to join this server!"
-                    await interaction.reply(f"CONGRATULATIONS! 🎊 You successfully registered your Ergo Wallet address. {extra}")
-        else:
-            await interaction.reply("ERROR! Please re-enter a valid Ergo wallet address.")
+#                     extra = f"You were user #{userRank} to join this server!"
+#                     await interaction.reply(f"CONGRATULATIONS! 🎊 You successfully registered your Ergo Wallet address. {extra}")
+#         else:
+#             await interaction.reply("ERROR! Please re-enter a valid Ergo wallet address.")
 
 @slash.command(
     name="register-cardano",
