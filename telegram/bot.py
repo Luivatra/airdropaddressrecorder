@@ -83,7 +83,7 @@ def registerCardano(update: Update, context: CallbackContext):
         context.bot.send_message(chat_id=update.effective_chat.id, text="ERROR! Please re-enter a valid Cardano wallet address.")
 
 #register_handler = CommandHandler('register-ergo', registerErgo)
-register_handler = CommandHandler('register-cardano', registerCardano)
+register_handler = CommandHandler('registerCardano', registerCardano)
 updater.dispatcher.add_handler(register_handler)
 updater.start_polling()
 updater.idle()
