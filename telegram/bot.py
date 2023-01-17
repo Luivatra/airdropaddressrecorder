@@ -5,13 +5,14 @@ import os
 import psycopg2
 import requests
 import logging
+from util.cardano_verify import verify_address
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
 
 updater = Updater(token=os.environ.get("TELEGRAM_TOKEN"))
 
-def register(update: Update, context: CallbackContext):
+def registerErgo(update: Update, context: CallbackContext):
     user: User = update.message.from_user
     if user.id != update.effective_chat.id:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Please contact me in DM only so we dont spam this chat! Go to @tosiaddressrecorderbot")
@@ -36,18 +37,53 @@ def register(update: Update, context: CallbackContext):
                 conn.commit()
                 extra = ""
                 extra = f"🦾 We'll keep this on hand for any future airdrops and events!😇"
-                cur.execute("""
-                SELECT count(*) from telegram_users
-                where join_date <= (select join_date from telegram_users where user_id = '%s')
-                """,(user.id,))
-                ogcount = cur.fetchone()[0]
-                if ogcount > 0 and ogcount <= 3000:
-                    extra = f"You were Telegram member number {ogcount}, congratulations and thank you for being one of the first 3,000 Telegram members to join our community. 😇 You are now successfully registered and will receive your airdrop within the coming weeks!🥳🎉"
+                # cur.execute("""
+                # SELECT count(*) from telegram_users
+                # where join_date <= (select join_date from telegram_users where user_id = '%s')
+                # """,(user.id,))
+                # ogcount = cur.fetchone()[0]
+                # if ogcount > 0 and ogcount <= 3000:
+                #     extra = f"You were Telegram member number {ogcount}, congratulations and thank you for being one of the first 3,000 Telegram members to join our community. 😇 You are now successfully registered and will receive your airdrop within the coming weeks!🥳🎉"
                 context.bot.send_message(chat_id=update.effective_chat.id, text=f"CONGRATULATIONS! 🎊 You successfully registered your Ergo Wallet address. {extra}")
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="ERROR! Please re-enter a valid Ergo wallet address.")
 
-register_handler = CommandHandler('register', register)
+def registerCardano(update: Update, context: CallbackContext):
+    user: User = update.message.from_user
+    if user.id != update.effective_chat.id:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Please contact me in DM only so we dont spam this chat!")
+        return
+    if context.args.__len__() < 1:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Please supply a Cardano address as the first argument to the command. (Like this: /register addr123234324")
+        return
+    address = context.args[0]
+    if verify_address(address, os.environ.get('blockfrost_project_id')):
+        with psycopg2.connect(host=os.environ.get("POSTGRES_HOST"),port=os.environ.get("POSTGRES_PORT"),database=os.environ.get('POSTGRES_DB'),user=os.environ.get('POSTGRES_USER'),password=os.environ.get('POSTGRES_PASSWORD')) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""INSERT INTO telegram_cardano_wallets 
+                (user_id,user_name,wallet_address) 
+                VALUES 
+                ('%s',%s,%s)
+                ON CONFLICT ON CONSTRAINT "telegram_cardano_wallets_USER_ID"
+                DO UPDATE SET
+                (user_name, wallet_address, wallet_update_ts)
+                = (EXCLUDED.user_name, EXCLUDED.wallet_address, CURRENT_TIMESTAMP)""",(user.id,user.full_name,address))
+                conn.commit()
+                extra = ""
+                extra = f"🦾 We'll keep this on hand for any future airdrops and events!😇"
+                # cur.execute("""
+                # SELECT count(*) from telegram_users
+                # where join_date <= (select join_date from telegram_users where user_id = '%s')
+                # """,(user.id,))
+                # ogcount = cur.fetchone()[0]
+                # if ogcount > 0 and ogcount <= 3000:
+                #     extra = f"You were Telegram member number {ogcount}, congratulations and thank you for being one of the first 3,000 Telegram members to join our community. 😇 You are now successfully registered and will receive your airdrop within the coming weeks!🥳🎉"
+                context.bot.send_message(chat_id=update.effective_chat.id, text=f"CONGRATULATIONS! 🎊 You successfully registered your Cardano Wallet address. {extra}")
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="ERROR! Please re-enter a valid Cardano wallet address.")
+
+#register_handler = CommandHandler('register-ergo', registerErgo)
+register_handler = CommandHandler('register-cardano', registerCardano)
 updater.dispatcher.add_handler(register_handler)
 updater.start_polling()
 updater.idle()
